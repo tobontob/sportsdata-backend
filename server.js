@@ -8,23 +8,22 @@ const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 require('dotenv').config();
 const sportsDataService = require('./services/sportsDataService');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
+
+console.log('현재 작업 디렉토리:', process.cwd());
+console.log('.env 파일 존재 여부:', fs.existsSync('.env'));
+if (fs.existsSync('.env')) {
+  console.log('.env 파일 내용:', fs.readFileSync('.env', 'utf-8'));
+}
 
 const allowedOrigins = [
   "http://localhost:3000",
   "https://web-production-190c.up.railway.app"
 ];
-
-// 환경변수에 여러 도메인이 ,로 구분되어 있을 경우 지원
-if (process.env.FRONTEND_URL) {
-  process.env.FRONTEND_URL.split(',').forEach(origin => {
-    if (!allowedOrigins.includes(origin.trim())) {
-      allowedOrigins.push(origin.trim());
-    }
-  });
-}
+console.log('allowedOrigins 하드코딩:', allowedOrigins);
 
 // 실제 적용되는 origin과 환경변수 값 로그 출력
 console.log('실제 적용되는 allowedOrigins:', allowedOrigins);
