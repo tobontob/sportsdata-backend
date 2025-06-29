@@ -154,24 +154,25 @@ io.on('connection', (socket) => {
     console.log(`⚽ 스코어 업데이트: 경기 ${matchId} - ${homeScore}:${awayScore}`);
   });
 
-  // 실시간 경기 및 예정 경기 응답
+  // 실시간, 예정, 완료 경기 순서로 응답
   socket.on('get_live_matches', async () => {
     try {
-      console.log('실제 스포츠 API에서 실시간 경기 데이터 요청...');
       const liveMatches = await sportsDataService.getLiveMatches();
       if (liveMatches.length > 0) {
-        console.log(`실제 API에서 ${liveMatches.length}개 실시간 경기 데이터 로드 완료`);
         socket.emit('live_matches_update', liveMatches);
       } else {
-        console.log('실시간 경기가 없어 예정 경기 데이터 조회');
         const upcomingMatches = await sportsDataService.getUpcomingMatches();
-        socket.emit('upcoming_matches_update', upcomingMatches);
+        if (upcomingMatches.length > 0) {
+          socket.emit('upcoming_matches_update', upcomingMatches);
+        } else {
+          const recentMatches = await sportsDataService.getRecentMatches();
+          socket.emit('recent_matches_update', recentMatches);
+        }
       }
     } catch (error) {
-      console.error('실시간 경기 데이터 로드 실패:', error.message);
-      // 에러 시에도 예정 경기 조회 시도
-      const upcomingMatches = await sportsDataService.getUpcomingMatches();
-      socket.emit('upcoming_matches_update', upcomingMatches);
+      // 에러 시에도 최근 경기 조회 시도
+      const recentMatches = await sportsDataService.getRecentMatches();
+      socket.emit('recent_matches_update', recentMatches);
     }
   });
 

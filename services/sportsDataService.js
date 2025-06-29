@@ -200,6 +200,39 @@ class SportsDataService {
     console.log(`총 ${uniqueMatches.length}개 예정 경기 데이터 준비 완료`);
     return uniqueMatches;
   }
+
+  // 어제 날짜의 완료된 경기 가져오기
+  async getRecentMatches() {
+    let matches = [];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+    // TheSportsDB에서 완료 경기
+    if (this.useTheSportsDB && theSportsDB.getMatchesByDate) {
+      try {
+        const theSportsDBMatches = await theSportsDB.getMatchesByDate(yesterday);
+        matches = matches.concat(theSportsDBMatches.filter(m => m.status === 'FT'));
+        console.log(`TheSportsDB에서 ${theSportsDBMatches.length}개 완료 경기 로드`);
+      } catch (error) {
+        console.error('TheSportsDB 완료 경기 로드 실패:', error.message);
+      }
+    }
+
+    // API-FOOTBALL에서 완료 경기
+    if (this.useAPIFootball) {
+      try {
+        const apiFootballMatches = await apiFootball.getMatchesByDate(yesterday);
+        matches = matches.concat(apiFootballMatches.filter(m => m.status === 'FT'));
+        console.log(`API-FOOTBALL에서 ${apiFootballMatches.length}개 완료 경기 로드`);
+      } catch (error) {
+        console.error('API-FOOTBALL 완료 경기 로드 실패:', error.message);
+      }
+    }
+
+    // 중복 제거
+    const uniqueMatches = this.removeDuplicates(matches);
+    console.log(`총 ${uniqueMatches.length}개 완료 경기 데이터 준비 완료`);
+    return uniqueMatches;
+  }
 }
 
 module.exports = new SportsDataService(); 
