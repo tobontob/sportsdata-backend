@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const axios = require('axios');
 
 // 모든 경기 조회
 router.get('/', async (req, res) => {
@@ -195,6 +196,32 @@ router.post('/:id/events', async (req, res) => {
   } catch (error) {
     console.error('이벤트 추가 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 경기별 배당률 조회 (외부 API 연동 예시)
+router.get('/:id/odds', async (req, res) => {
+  try {
+    const matchId = req.params.id;
+    // DB에서 경기 정보 조회 (리그, 팀 등 필요)
+    const matchResult = await db.query('SELECT * FROM matches WHERE id = $1', [matchId]);
+    if (matchResult.rows.length === 0) {
+      return res.status(404).json({ error: '경기를 찾을 수 없습니다.' });
+    }
+    const match = matchResult.rows[0];
+
+    // API-Football 예시 (실제 API 키와 엔드포인트로 교체 필요)
+    const apiKey = process.env.API_FOOTBALL_KEY;
+    const apiUrl = `https://v3.football.api-sports.io/odds?fixture=${match.api_football_id}`;
+    const response = await axios.get(apiUrl, {
+      headers: { 'x-apisports-key': apiKey }
+    });
+    const oddsData = response.data;
+
+    res.json(oddsData);
+  } catch (error) {
+    console.error('배당률 조회 오류:', error.response?.data || error.message);
+    res.status(500).json({ error: '배당률 정보를 가져오지 못했습니다.' });
   }
 });
 
