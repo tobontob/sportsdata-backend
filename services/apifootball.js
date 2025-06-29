@@ -211,6 +211,38 @@ class APIFootballService {
       return null;
     }
   }
+
+  // 특정 날짜의 예정 경기 가져오기
+  async getMatchesByDate(date) {
+    try {
+      const response = await axios.get(`${this.baseURL}/fixtures`, {
+        headers: this.getHeaders(),
+        params: { date }
+      });
+      if (response.data && response.data.response) {
+        return response.data.response.map(fixture => ({
+          id: fixture.fixture.id,
+          homeTeam: fixture.teams.home.name,
+          awayTeam: fixture.teams.away.name,
+          homeScore: fixture.goals.home || 0,
+          awayScore: fixture.goals.away || 0,
+          status: fixture.fixture.status.short,
+          minute: fixture.fixture.status.elapsed || 0,
+          league: fixture.league.name,
+          time: fixture.fixture.date,
+          date: fixture.fixture.date,
+          venue: fixture.fixture.venue?.name || 'Unknown',
+          homeLogo: fixture.teams.home.logo,
+          awayLogo: fixture.teams.away.logo,
+          leagueLogo: fixture.league.logo
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('API-FOOTBALL 날짜별 경기 API 에러:', error.message);
+      return [];
+    }
+  }
 }
 
 module.exports = new APIFootballService(); 

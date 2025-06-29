@@ -167,6 +167,39 @@ class SportsDataService {
       totalAPIs: (this.useTheSportsDB ? 1 : 0) + (this.useAPIFootball ? 1 : 0)
     };
   }
+
+  // 오늘 날짜의 예정 경기 가져오기 (실시간 경기 없을 때)
+  async getUpcomingMatches() {
+    let matches = [];
+    const today = new Date().toISOString().slice(0, 10);
+
+    // TheSportsDB에서 예정 경기 가져오기
+    if (this.useTheSportsDB) {
+      try {
+        const theSportsDBMatches = await theSportsDB.getMatchesByDate(today);
+        matches = matches.concat(theSportsDBMatches);
+        console.log(`TheSportsDB에서 ${theSportsDBMatches.length}개 예정 경기 로드`);
+      } catch (error) {
+        console.error('TheSportsDB 예정 경기 로드 실패:', error.message);
+      }
+    }
+
+    // API-FOOTBALL에서 예정 경기 가져오기
+    if (this.useAPIFootball) {
+      try {
+        const apiFootballMatches = await apiFootball.getMatchesByDate(today);
+        matches = matches.concat(apiFootballMatches);
+        console.log(`API-FOOTBALL에서 ${apiFootballMatches.length}개 예정 경기 로드`);
+      } catch (error) {
+        console.error('API-FOOTBALL 예정 경기 로드 실패:', error.message);
+      }
+    }
+
+    // 중복 제거 (ID 기준)
+    const uniqueMatches = this.removeDuplicates(matches);
+    console.log(`총 ${uniqueMatches.length}개 예정 경기 데이터 준비 완료`);
+    return uniqueMatches;
+  }
 }
 
 module.exports = new SportsDataService(); 

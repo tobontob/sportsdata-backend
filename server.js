@@ -154,72 +154,24 @@ io.on('connection', (socket) => {
     console.log(`⚽ 스코어 업데이트: 경기 ${matchId} - ${homeScore}:${awayScore}`);
   });
 
-  // 실시간 경기 더미 데이터 응답
+  // 실시간 경기 및 예정 경기 응답
   socket.on('get_live_matches', async () => {
     try {
       console.log('실제 스포츠 API에서 실시간 경기 데이터 요청...');
       const liveMatches = await sportsDataService.getLiveMatches();
-      
       if (liveMatches.length > 0) {
         console.log(`실제 API에서 ${liveMatches.length}개 실시간 경기 데이터 로드 완료`);
         socket.emit('live_matches_update', liveMatches);
       } else {
-        console.log('실제 API에서 실시간 경기 데이터가 없어서 더미 데이터 사용');
-        // 실제 데이터가 없을 때만 더미 데이터 사용
-        const dummyMatches = [
-          {
-            id: 1,
-            homeTeam: '맨체스터 유나이티드',
-            awayTeam: '리버풀',
-            homeScore: 2,
-            awayScore: 1,
-            status: 'live',
-            minute: 67,
-            league: '프리미어 리그',
-            time: '67분'
-          },
-          {
-            id: 2,
-            homeTeam: '바르셀로나',
-            awayTeam: '레알 마드리드',
-            homeScore: 1,
-            awayScore: 1,
-            status: 'live',
-            minute: 54,
-            league: '라 리가',
-            time: '54분'
-          }
-        ];
-        socket.emit('live_matches_update', dummyMatches);
+        console.log('실시간 경기가 없어 예정 경기 데이터 조회');
+        const upcomingMatches = await sportsDataService.getUpcomingMatches();
+        socket.emit('upcoming_matches_update', upcomingMatches);
       }
     } catch (error) {
       console.error('실시간 경기 데이터 로드 실패:', error.message);
-      // 에러 시 더미 데이터 사용
-      const dummyMatches = [
-        {
-          id: 1,
-          homeTeam: '맨체스터 유나이티드',
-          awayTeam: '리버풀',
-          homeScore: 2,
-          awayScore: 1,
-          status: 'live',
-          minute: 67,
-          league: '프리미어 리그',
-          time: '67분'
-        },
-        {
-          id: 2,
-          homeTeam: '바르셀로나',
-          awayTeam: '레알 마드리드',
-          homeScore: 1,
-          awayScore: 1,
-          status: 'live',
-          minute: 54,
-          league: '라 리가',
-          time: '54분'
-        }
-      ];
-      socket.emit('live_matches_update', dummyMatches);
+      // 에러 시에도 예정 경기 조회 시도
+      const upcomingMatches = await sportsDataService.getUpcomingMatches();
+      socket.emit('upcoming_matches_update', upcomingMatches);
     }
   });
 
