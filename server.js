@@ -26,6 +26,10 @@ if (process.env.FRONTEND_URL) {
   });
 }
 
+// 실제 적용되는 origin과 환경변수 값 로그 출력
+console.log('실제 적용되는 allowedOrigins:', allowedOrigins);
+console.log('환경변수 FRONTEND_URL:', process.env.FRONTEND_URL);
+
 const io = socketIo(server, {
   cors: {
     origin: allowedOrigins,
