@@ -154,25 +154,77 @@ io.on('connection', (socket) => {
     console.log(`⚽ 스코어 업데이트: 경기 ${matchId} - ${homeScore}:${awayScore}`);
   });
 
-  // 실시간, 예정, 완료 경기 순서로 응답
+  // 실시간, 예정, 완료, 더미 데이터 순서로 응답
   socket.on('get_live_matches', async () => {
     try {
       const liveMatches = await sportsDataService.getLiveMatches();
       if (liveMatches.length > 0) {
         socket.emit('live_matches_update', liveMatches);
-      } else {
-        const upcomingMatches = await sportsDataService.getUpcomingMatches();
-        if (upcomingMatches.length > 0) {
-          socket.emit('upcoming_matches_update', upcomingMatches);
-        } else {
-          const recentMatches = await sportsDataService.getRecentMatches();
-          socket.emit('recent_matches_update', recentMatches);
-        }
+        return;
       }
-    } catch (error) {
-      // 에러 시에도 최근 경기 조회 시도
+      const upcomingMatches = await sportsDataService.getUpcomingMatches();
+      if (upcomingMatches.length > 0) {
+        socket.emit('upcoming_matches_update', upcomingMatches);
+        return;
+      }
       const recentMatches = await sportsDataService.getRecentMatches();
-      socket.emit('recent_matches_update', recentMatches);
+      if (recentMatches.length > 0) {
+        socket.emit('recent_matches_update', recentMatches);
+        return;
+      }
+      // 마지막으로 더미 데이터 반환
+      const dummyMatches = [
+        {
+          id: 1,
+          homeTeam: '맨체스터 유나이티드',
+          awayTeam: '리버풀',
+          homeScore: 2,
+          awayScore: 1,
+          status: 'live',
+          minute: 67,
+          league: '프리미어 리그',
+          time: '67분'
+        },
+        {
+          id: 2,
+          homeTeam: '바르셀로나',
+          awayTeam: '레알 마드리드',
+          homeScore: 1,
+          awayScore: 1,
+          status: 'live',
+          minute: 54,
+          league: '라 리가',
+          time: '54분'
+        }
+      ];
+      socket.emit('dummy_matches_update', dummyMatches);
+    } catch (error) {
+      // 에러 시에도 더미 데이터 반환
+      const dummyMatches = [
+        {
+          id: 1,
+          homeTeam: '맨체스터 유나이티드',
+          awayTeam: '리버풀',
+          homeScore: 2,
+          awayScore: 1,
+          status: 'live',
+          minute: 67,
+          league: '프리미어 리그',
+          time: '67분'
+        },
+        {
+          id: 2,
+          homeTeam: '바르셀로나',
+          awayTeam: '레알 마드리드',
+          homeScore: 1,
+          awayScore: 1,
+          status: 'live',
+          minute: 54,
+          league: '라 리가',
+          time: '54분'
+        }
+      ];
+      socket.emit('dummy_matches_update', dummyMatches);
     }
   });
 
