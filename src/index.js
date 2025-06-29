@@ -219,8 +219,7 @@ io.on('connection', (socket) => {
   // 특정 경기 구독
   socket.on('subscribe_match', (matchId) => {
     socket.join(`match_${matchId}`)
-    console.log(`User ${socket.id} subscribed to match ${matchId}`)
-    
+    console.log('join room:', matchId, socket.id)
     // 기존 메시지 전송
     const messages = chatMessages.get(matchId) || []
     socket.emit('chat_history', messages)
