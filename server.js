@@ -11,7 +11,23 @@ const sportsDataService = require('./services/sportsDataService');
 const fs = require('fs');
 
 const app = express();
+
+// CORS 미들웨어를 가장 먼저 적용
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://web-production-190c.up.railway.app"
+];
+const corsOptions = {
+  origin: allowedOrigins,
+  credentials: true
+};
+console.log('CORS 옵션:', corsOptions);
+app.use(cors(corsOptions));
+
 const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: corsOptions
+});
 
 console.log('현재 작업 디렉토리:', process.cwd());
 console.log('.env 파일 존재 여부:', fs.existsSync('.env'));
@@ -19,27 +35,9 @@ if (fs.existsSync('.env')) {
   console.log('.env 파일 내용:', fs.readFileSync('.env', 'utf-8'));
 }
 
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://web-production-190c.up.railway.app"
-];
-console.log('allowedOrigins 하드코딩:', allowedOrigins);
-
-const corsOptions = {
-  origin: allowedOrigins,
-  credentials: true
-};
-console.log('CORS 옵션:', corsOptions);
-
-app.use(cors(corsOptions));
-
 // 실제 적용되는 origin과 환경변수 값 로그 출력
 console.log('실제 적용되는 allowedOrigins:', allowedOrigins);
 console.log('환경변수 FRONTEND_URL:', process.env.FRONTEND_URL);
-
-const io = socketIo(server, {
-  cors: corsOptions
-});
 
 // 미들웨어 설정
 app.use(helmet()); // 보안 헤더
