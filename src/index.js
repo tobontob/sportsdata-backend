@@ -219,7 +219,7 @@ io.on('connection', (socket) => {
   // 특정 경기 구독
   socket.on('subscribe_match', (matchId) => {
     socket.join(`match_${matchId}`)
-    console.log('join room:', matchId, socket.id)
+    console.log('join room:', matchId, socket.id, Array.from(socket.rooms))
     // 기존 메시지 전송
     const messages = chatMessages.get(matchId) || []
     socket.emit('chat_history', messages)
@@ -249,8 +249,10 @@ io.on('connection', (socket) => {
       messages.splice(0, messages.length - 100)
     }
     
-    // 해당 경기 채팅방에 메시지 브로드캐스트
+    // 해당 경기 채팅방에 메시지 브로드캐스트 (본인 포함)
     io.to(`match_${matchId}`).emit('new_message', message)
+    // 해당 경기 채팅방에 메시지 브로드캐스트 (본인 미포함)
+    socket.broadcast.to(`match_${matchId}`).emit('new_message', message)
   })
 
   socket.on('disconnect', () => {
