@@ -11,10 +11,26 @@ const sportsDataService = require('./services/sportsDataService');
 
 const app = express();
 const server = http.createServer(app);
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://web-production-190c.up.railway.app"
+];
+
+// 환경변수에 여러 도메인이 ,로 구분되어 있을 경우 지원
+if (process.env.FRONTEND_URL) {
+  process.env.FRONTEND_URL.split(',').forEach(origin => {
+    if (!allowedOrigins.includes(origin.trim())) {
+      allowedOrigins.push(origin.trim());
+    }
+  });
+}
+
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST"]
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -32,7 +48,7 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: allowedOrigins,
   credentials: true
 }));
 
