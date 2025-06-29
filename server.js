@@ -25,16 +25,20 @@ const allowedOrigins = [
 ];
 console.log('allowedOrigins 하드코딩:', allowedOrigins);
 
+const corsOptions = {
+  origin: allowedOrigins,
+  credentials: true
+};
+console.log('CORS 옵션:', corsOptions);
+
+app.use(cors(corsOptions));
+
 // 실제 적용되는 origin과 환경변수 값 로그 출력
 console.log('실제 적용되는 allowedOrigins:', allowedOrigins);
 console.log('환경변수 FRONTEND_URL:', process.env.FRONTEND_URL);
 
 const io = socketIo(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-    credentials: true
-  }
+  cors: corsOptions
 });
 
 // 미들웨어 설정
@@ -49,11 +53,6 @@ const limiter = rateLimit({
   message: '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.'
 });
 app.use('/api/', limiter);
-
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
