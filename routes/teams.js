@@ -67,4 +67,17 @@ router.get('/players-stats', (req, res) => {
   res.json(stats);
 });
 
+// 월별 성과 등 요약 통계 (더미 데이터)
+router.get('/summary-stats', (req, res) => {
+  const summary = {
+    month: '11월',
+    record: '8승 2무 1패',
+    goals: 25,
+    conceded: 8,
+    bestPlayer: '해리 케인',
+    bestTeam: '바이에른 뮌헨'
+  };
+  res.json(summary);
+});
+
 module.exports = router; 
