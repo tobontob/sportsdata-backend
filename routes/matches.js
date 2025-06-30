@@ -212,7 +212,7 @@ router.get('/:id/odds', async (req, res) => {
 
     // API-Football 예시 (실제 API 키와 엔드포인트로 교체 필요)
     const apiKey = process.env.API_FOOTBALL_KEY;
-    const apiUrl = `https://v3.football.api-sports.io/odds?fixture=${match.api_football_id}`;
+    const apiUrl = `https://v3.football.api-sports.io/odds?fixture=${matchId}`;
     const response = await axios.get(apiUrl, {
       headers: { 'x-apisports-key': apiKey }
     });
