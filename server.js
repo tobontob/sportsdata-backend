@@ -48,6 +48,7 @@ async function initializeRedis() {
 // 실제 적용되는 origin과 환경변수 값 로그 출력
 console.log('실제 적용되는 allowedOrigins:', allowedOrigins);
 console.log('환경변수 FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('실제 REDIS_URL:', process.env.REDIS_URL);
 
 // 미들웨어 설정
 app.use(helmet()); // 보안 헤더
