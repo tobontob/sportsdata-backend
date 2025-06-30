@@ -3,6 +3,10 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const KakaoStrategy = require('passport-kakao').Strategy;
+const NaverStrategy = require('passport-naver').Strategy;
 
 // 회원가입
 router.post('/register', async (req, res) => {
@@ -228,6 +232,124 @@ router.put('/password', authenticateToken, async (req, res) => {
     console.error('비밀번호 변경 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다.' });
   }
+});
+
+// 소셜 로그인 전략 등록 (clientID, secret, callbackURL은 실제 환경변수로 대체 필요)
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: process.env.GOOGLE_CALLBACK_URL
+}, async (accessToken, refreshToken, profile, done) => {
+  try {
+    const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
+    const username = `google_${profile.id}`;
+    const nickname = profile.displayName || username;
+    let user;
+    // DB에서 사용자 조회
+    const result = await db.query('SELECT * FROM users WHERE username = $1 OR email = $2', [username, email]);
+    if (result.rows.length > 0) {
+      user = result.rows[0];
+    } else {
+      // 사용자 생성
+      const insert = await db.query(
+        'INSERT INTO users (username, email, nickname, created_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP) RETURNING *',
+        [username, email, nickname]
+      );
+      user = insert.rows[0];
+    }
+    done(null, user);
+  } catch (err) {
+    done(err);
+  }
+}));
+
+passport.use(new KakaoStrategy({
+  clientID: process.env.KAKAO_CLIENT_ID,
+  clientSecret: process.env.KAKAO_CLIENT_SECRET,
+  callbackURL: process.env.KAKAO_CALLBACK_URL
+}, async (accessToken, refreshToken, profile, done) => {
+  try {
+    const kakaoAccount = profile._json && profile._json.kakao_account ? profile._json.kakao_account : {};
+    const email = kakaoAccount.email || null;
+    const username = `kakao_${profile.id}`;
+    const nickname = (kakaoAccount.profile && kakaoAccount.profile.nickname) || username;
+    let user;
+    const result = await db.query('SELECT * FROM users WHERE username = $1 OR email = $2', [username, email]);
+    if (result.rows.length > 0) {
+      user = result.rows[0];
+    } else {
+      const insert = await db.query(
+        'INSERT INTO users (username, email, nickname, created_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP) RETURNING *',
+        [username, email, nickname]
+      );
+      user = insert.rows[0];
+    }
+    done(null, user);
+  } catch (err) {
+    done(err);
+  }
+}));
+
+passport.use(new NaverStrategy({
+  clientID: process.env.NAVER_CLIENT_ID,
+  clientSecret: process.env.NAVER_CLIENT_SECRET,
+  callbackURL: process.env.NAVER_CALLBACK_URL
+}, async (accessToken, refreshToken, profile, done) => {
+  try {
+    const naverProfile = profile._json && profile._json.response ? profile._json.response : {};
+    const email = naverProfile.email || null;
+    const username = `naver_${profile.id}`;
+    const nickname = naverProfile.nickname || username;
+    let user;
+    const result = await db.query('SELECT * FROM users WHERE username = $1 OR email = $2', [username, email]);
+    if (result.rows.length > 0) {
+      user = result.rows[0];
+    } else {
+      const insert = await db.query(
+        'INSERT INTO users (username, email, nickname, created_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP) RETURNING *',
+        [username, email, nickname]
+      );
+      user = insert.rows[0];
+    }
+    done(null, user);
+  } catch (err) {
+    done(err);
+  }
+}));
+
+// 소셜 로그인 라우트
+router.get('/social/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/social/google/callback', passport.authenticate('google', { session: false }), (req, res) => {
+  // JWT 발급 및 프론트엔드로 반환
+  const user = req.user;
+  const token = jwt.sign(
+    { userId: user.id, username: user.username },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+  res.json({ user, token });
+});
+
+router.get('/social/kakao', passport.authenticate('kakao'));
+router.get('/social/kakao/callback', passport.authenticate('kakao', { session: false }), (req, res) => {
+  const user = req.user;
+  const token = jwt.sign(
+    { userId: user.id, username: user.username },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+  res.json({ user, token });
+});
+
+router.get('/social/naver', passport.authenticate('naver'));
+router.get('/social/naver/callback', passport.authenticate('naver', { session: false }), (req, res) => {
+  const user = req.user;
+  const token = jwt.sign(
+    { userId: user.id, username: user.username },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+  res.json({ user, token });
 });
 
 module.exports = { router, authenticateToken }; 
