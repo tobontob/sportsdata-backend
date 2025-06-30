@@ -6,8 +6,10 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
+const { createAdapter } = require('@socket.io/redis-adapter');
 require('dotenv').config();
 const sportsDataService = require('./services/sportsDataService');
+const redisManager = require('./src/redis');
 const fs = require('fs');
 
 const app = express();
@@ -29,10 +31,18 @@ const io = socketIo(server, {
   cors: corsOptions
 });
 
-console.log('현재 작업 디렉토리:', process.cwd());
-console.log('.env 파일 존재 여부:', fs.existsSync('.env'));
-if (fs.existsSync('.env')) {
-  console.log('.env 파일 내용:', fs.readFileSync('.env', 'utf-8'));
+// Redis 연결 및 Socket.IO 어댑터 설정
+async function initializeRedis() {
+  try {
+    const { pubClient, subClient } = await redisManager.connect();
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log('✅ Socket.IO Redis 어댑터 설정 완료');
+    return true;
+  } catch (error) {
+    console.error('❌ Redis 연결 실패:', error.message);
+    console.log('⚠️ Redis 없이 서버 실행 중...');
+    return false;
+  }
 }
 
 // 실제 적용되는 origin과 환경변수 값 로그 출력
@@ -69,8 +79,43 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    redis: redisManager.getStatus()
   });
+});
+
+// Redis 상태 확인
+app.get('/api/redis/status', (req, res) => {
+  res.json({
+    status: redisManager.getStatus(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Redis 테스트
+app.get('/api/redis/test', async (req, res) => {
+  try {
+    const testKey = 'test:connection';
+    const testValue = { message: 'Redis 연결 테스트', timestamp: new Date().toISOString() };
+    
+    await redisManager.set(testKey, testValue, 60);
+    const retrievedValue = await redisManager.get(testKey);
+    await redisManager.del(testKey);
+    
+    res.json({
+      success: true,
+      message: 'Redis 연결 및 작업 테스트 성공',
+      testValue: retrievedValue,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Redis 테스트 실패',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Socket.IO 연결 관리
@@ -262,25 +307,43 @@ app.use('*', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다.`);
-  console.log(`📊 환경: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 CORS Origin: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-});
+// Redis 초기화 후 서버 시작
+async function startServer() {
+  console.log('현재 작업 디렉토리:', process.cwd());
+  console.log('.env 파일 존재 여부:', fs.existsSync('.env'));
+  if (fs.existsSync('.env')) {
+    console.log('.env 파일 내용:', fs.readFileSync('.env', 'utf-8'));
+  }
+
+  // Redis 초기화
+  const redisConnected = await initializeRedis();
+  
+  // 서버 시작
+  server.listen(PORT, () => {
+    console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다.`);
+    console.log(`📊 환경: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🌐 CORS Origin: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+    console.log(`🔴 Redis 연결: ${redisConnected ? '활성화' : '비활성화'}`);
+  });
+}
+
+startServer();
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('🛑 SIGTERM 신호를 받았습니다. 서버를 종료합니다...');
-  server.close(() => {
+  server.close(async () => {
     console.log('✅ 서버가 정상적으로 종료되었습니다.');
+    await redisManager.disconnect();
     process.exit(0);
   });
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('🛑 SIGINT 신호를 받았습니다. 서버를 종료합니다...');
-  server.close(() => {
+  server.close(async () => {
     console.log('✅ 서버가 정상적으로 종료되었습니다.');
+    await redisManager.disconnect();
     process.exit(0);
   });
 }); 
