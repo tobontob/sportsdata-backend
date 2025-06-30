@@ -161,25 +161,27 @@ io.on('connection', (socket) => {
     console.log(`🚪 경기방 퇴장: ${socket.id} -> 경기 ${matchId}`);
   });
 
-  // 채팅 메시지
-  socket.on('chat-message', async (data) => {
-    const { matchId, message } = data;
-    const user = connectedUsers.get(socket.id);
-    
-    if (!user || !message.trim()) return;
+  // === 프론트엔드 호환: subscribe_match, unsubscribe_match, chat_message ===
+  socket.on('subscribe_match', (matchId) => {
+    socket.join(`match_${matchId}`);
+    console.log('join room:', `match_${matchId}`, socket.id, Array.from(socket.rooms));
+    // 기존 메시지 전송(옵션)
+    // socket.emit('chat_history', ...);
+  });
 
-    const messageData = {
-      id: Date.now(),
-      username: user.username,
-      message: message.trim(),
-      timestamp: new Date().toISOString(),
-      userId: user.userId
-    };
+  socket.on('unsubscribe_match', (matchId) => {
+    socket.leave(`match_${matchId}`);
+    console.log('leave room:', `match_${matchId}`, socket.id, Array.from(socket.rooms));
+  });
 
-    // 모든 클라이언트에게 메시지 전송
-    io.to(`match-${matchId}`).emit('new-message', messageData);
-    
-    console.log(`💬 채팅 메시지: ${user.username} -> ${message}`);
+  socket.on('chat_message', (message) => {
+    console.log('Chat message received:', message);
+    const matchId = message.matchId;
+    // 디버깅: 현재 socket.rooms 확인
+    console.log('현재 socket.rooms:', Array.from(socket.rooms));
+    // 디버깅: 브로드캐스트 직전 로그
+    console.log(`io.to(match_${matchId}).emit('new_message', ...) 실행!`);
+    io.to(`match_${matchId}`).emit('new_message', message);
   });
 
   // 경기 스코어 업데이트
