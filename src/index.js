@@ -219,7 +219,7 @@ io.on('connection', (socket) => {
   // 특정 경기 구독
   socket.on('subscribe_match', (matchId) => {
     socket.join(`match_${matchId}`)
-    console.log('join room:', matchId, socket.id, Array.from(socket.rooms))
+    console.log('join room:', `match_${matchId}`, socket.id, Array.from(socket.rooms))
     // 기존 메시지 전송
     const messages = chatMessages.get(matchId) || []
     socket.emit('chat_history', messages)
@@ -228,31 +228,28 @@ io.on('connection', (socket) => {
   // 경기 구독 해제
   socket.on('unsubscribe_match', (matchId) => {
     socket.leave(`match_${matchId}`)
-    console.log(`User ${socket.id} unsubscribed from match ${matchId}`)
+    console.log('leave room:', `match_${matchId}`, socket.id, Array.from(socket.rooms))
   })
 
   // 채팅 메시지 처리
   socket.on('chat_message', (message) => {
     console.log('Chat message received:', message)
-    
-    // 메시지 저장
     const matchId = message.matchId
     if (!chatMessages.has(matchId)) {
       chatMessages.set(matchId, [])
     }
-    
     const messages = chatMessages.get(matchId)
     messages.push(message)
-    
     // 최근 100개 메시지만 유지
     if (messages.length > 100) {
       messages.splice(0, messages.length - 100)
     }
-    
+    // 디버깅: 현재 socket.rooms 확인
+    console.log('현재 socket.rooms:', Array.from(socket.rooms))
+    // 디버깅: 브로드캐스트 직전 로그
+    console.log(`io.to(match_${matchId}).emit('new_message', ...) 실행!`)
     // 해당 경기 채팅방에 메시지 브로드캐스트 (본인 포함)
     io.to(`match_${matchId}`).emit('new_message', message)
-    // 해당 경기 채팅방에 메시지 브로드캐스트 (본인 미포함)
-    socket.broadcast.to(`match_${matchId}`).emit('new_message', message)
   })
 
   socket.on('disconnect', () => {
