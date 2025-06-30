@@ -15,13 +15,18 @@ const pool = new Pool({
 const API_KEY = process.env.API_FOOTBALL_KEY;
 const SEASON = 2023; // 원하는 시즌으로 변경 가능
 
+// 메이저 리그만 추려서 테스트
+const leagues = [
+  { id: 39 },   // 프리미어리그
+  { id: 140 },  // 라리가
+  { id: 78 },   // 분데스리가
+  { id: 135 },  // 세리에A
+  { id: 61 }    // 리그앙
+];
+
 async function importMatches() {
   try {
-    // leagues 테이블에서 리그ID 읽기
-    const leaguesRes = await pool.query('SELECT id FROM leagues');
-    const leagues = leaguesRes.rows;
-    console.log(`리그 개수: ${leagues.length}`);
-
+    console.log(`메이저 리그 개수: ${leagues.length}`);
     for (const league of leagues) {
       const leagueId = league.id;
       console.log(`리그 ${leagueId}의 경기 데이터 요청...`);
