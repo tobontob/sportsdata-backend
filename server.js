@@ -87,6 +87,8 @@ app.use('/api/reports', reportsRouter);
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
     redis: redisManager.getStatus()
   });
 });
