@@ -73,12 +73,14 @@ const chatRouter = require('./routes/chat');
 const { router: authRouter } = require('./routes/auth');
 const leaguesRouter = require('./routes/leagues');
 const teamsRouter = require('./routes/teams');
+const reportsRouter = require('./routes/reports');
 
 app.use('/api/matches', matchesRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/leagues', leaguesRouter);
 app.use('/api/teams', teamsRouter);
+app.use('/api/admin/reports', reportsRouter);
 
 // 헬스 체크
 app.get('/api/health', (req, res) => {
