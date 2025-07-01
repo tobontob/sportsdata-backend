@@ -49,14 +49,25 @@ router.patch('/:id', authenticateToken, requireAdmin, async (req, res) => {
     const report = reportRes.rows[0];
     // 실제 삭제/숨김 처리 (예시)
     if (action === 'deleted') {
+      let targetUserId = null;
       if (report.target_type === 'post') {
         await db.query('UPDATE posts SET deleted = TRUE WHERE id = $1', [report.target_id]);
+        const postRes = await db.query('SELECT user_id FROM posts WHERE id = $1', [report.target_id]);
+        if (postRes.rows.length > 0) targetUserId = postRes.rows[0].user_id;
       } else if (report.target_type === 'comment') {
         await db.query('UPDATE comments SET deleted = TRUE WHERE id = $1', [report.target_id]);
+        const commentRes = await db.query('SELECT user_id FROM comments WHERE id = $1', [report.target_id]);
+        if (commentRes.rows.length > 0) targetUserId = commentRes.rows[0].user_id;
       } else if (report.target_type === 'chat') {
         await db.query('UPDATE chat_messages SET deleted = TRUE WHERE id = $1', [report.target_id]);
+        const chatRes = await db.query('SELECT user_id FROM chat_messages WHERE id = $1', [report.target_id]);
+        if (chatRes.rows.length > 0) targetUserId = chatRes.rows[0].user_id;
       } else if (report.target_type === 'betting') {
         // betting 항목은 별도 처리 필요(예: 신고만 기록)
+      }
+      // 피신고자 경고 횟수 증가
+      if (targetUserId) {
+        await db.query('UPDATE users SET warning_count = COALESCE(warning_count,0) + 1 WHERE id = $1', [targetUserId]);
       }
     }
     await db.query('UPDATE reports SET status = $1 WHERE id = $2', [action, id]);
