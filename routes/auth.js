@@ -366,4 +366,48 @@ router.get('/social/naver/callback', passport.authenticate('naver', { session: f
   res.json({ user, token });
 });
 
+// 관리자용 회원 목록/상세/경고/차단/해제 API
+router.get('/admin/users', authenticateToken, requireAdmin, async (req, res) => {
+  const { q } = req.query;
+  let query = 'SELECT id, username, email, nickname, created_at, warning_count FROM users';
+  let params = [];
+  if (q) {
+    query += ' WHERE username ILIKE $1 OR email ILIKE $1 OR nickname ILIKE $1';
+    params.push(`%${q}%`);
+  }
+  query += ' ORDER BY id DESC';
+  const result = await db.query(query, params);
+  res.json(result.rows);
+});
+
+router.get('/admin/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const result = await db.query('SELECT id, username, email, nickname, created_at, warning_count FROM users WHERE id = $1', [id]);
+  if (result.rows.length === 0) return res.status(404).json({ error: '사용자 없음' });
+  res.json(result.rows[0]);
+});
+
+// 경고/차단/해제 (PATCH)
+router.patch('/admin/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { action } = req.body;
+  if (!['warn', 'block', 'unblock'].includes(action)) {
+    return res.status(400).json({ error: '유효하지 않은 action' });
+  }
+  let query, params;
+  if (action === 'warn') {
+    query = 'UPDATE users SET warning_count = COALESCE(warning_count,0) + 1 WHERE id = $1 RETURNING *';
+    params = [id];
+  } else if (action === 'block') {
+    query = 'UPDATE users SET warning_count = 99 WHERE id = $1 RETURNING *';
+    params = [id];
+  } else if (action === 'unblock') {
+    query = 'UPDATE users SET warning_count = 0 WHERE id = $1 RETURNING *';
+    params = [id];
+  }
+  const result = await db.query(query, params);
+  if (result.rows.length === 0) return res.status(404).json({ error: '사용자 없음' });
+  res.json(result.rows[0]);
+});
+
 module.exports = { router, authenticateToken, requireNotBlocked }; 
