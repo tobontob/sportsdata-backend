@@ -8,6 +8,14 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const KakaoStrategy = require('passport-kakao').Strategy;
 const NaverStrategy = require('passport-naver').Strategy;
 
+// 관리자 권한 체크 미들웨어 (userId=1만 관리자 예시)
+function requireAdmin(req, res, next) {
+  if (req.user && req.user.userId === 1) {
+    return next();
+  }
+  return res.status(403).json({ error: '관리자 권한이 필요합니다.' });
+}
+
 // 회원가입
 router.post('/register', async (req, res) => {
   try {
