@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const axios = require('axios');
+const { authenticateToken, requireNotBlocked } = require('./auth');
 
 // 모든 경기 조회
 router.get('/', async (req, res) => {
@@ -180,7 +181,7 @@ router.patch('/:id/score', async (req, res) => {
 });
 
 // 경기 이벤트 추가
-router.post('/:id/events', async (req, res) => {
+router.post('/:id/events', authenticateToken, requireNotBlocked, async (req, res) => {
   try {
     const { id } = req.params;
     const { event_type, minute, player_name, team_id, description } = req.body;

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { authenticateToken, requireNotBlocked } = require('./auth');
 
 // 특정 경기의 채팅 메시지 조회
 router.get('/:matchId', async (req, res) => {
@@ -32,7 +33,7 @@ router.get('/:matchId', async (req, res) => {
 });
 
 // 채팅 메시지 저장
-router.post('/:matchId', async (req, res) => {
+router.post('/:matchId', authenticateToken, requireNotBlocked, async (req, res) => {
   try {
     const { matchId } = req.params;
     const { message, username, userId } = req.body;

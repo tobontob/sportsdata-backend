@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const jwt = require('jsonwebtoken');
+const { authenticateToken, requireNotBlocked } = require('./auth');
 
 // 인증 미들웨어 (auth.js에서 복사)
 function authenticateToken(req, res, next) {
@@ -78,7 +79,7 @@ router.patch('/:id', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // POST /api/reports - 신고 등록 (중복 방지)
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, requireNotBlocked, async (req, res) => {
   const { target_type, target_id, reason, message } = req.body;
   if (!target_type || !target_id || !reason) {
     return res.status(400).json({ error: '필수 항목 누락' });

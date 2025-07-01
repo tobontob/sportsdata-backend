@@ -149,8 +149,22 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// 경고 3회 이상 차단 미들웨어
+const requireNotBlocked = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const result = await db.query('SELECT warning_count FROM users WHERE id = $1', [userId]);
+    if (result.rows.length > 0 && result.rows[0].warning_count >= 3) {
+      return res.status(403).json({ error: '경고 누적으로 차단된 계정입니다.' });
+    }
+    next();
+  } catch (err) {
+    return res.status(500).json({ error: '차단 여부 확인 실패' });
+  }
+};
+
 // 사용자 프로필 조회
-router.get('/profile', authenticateToken, async (req, res) => {
+router.get('/profile', authenticateToken, requireNotBlocked, async (req, res) => {
   try {
     const result = await db.query(
       'SELECT id, username, email, nickname, created_at, last_login FROM users WHERE id = $1',
@@ -169,7 +183,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 });
 
 // 프로필 업데이트
-router.put('/profile', authenticateToken, async (req, res) => {
+router.put('/profile', authenticateToken, requireNotBlocked, async (req, res) => {
   try {
     const { nickname, email } = req.body;
 
@@ -193,7 +207,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
 });
 
 // 비밀번호 변경
-router.put('/password', authenticateToken, async (req, res) => {
+router.put('/password', authenticateToken, requireNotBlocked, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
@@ -352,4 +366,4 @@ router.get('/social/naver/callback', passport.authenticate('naver', { session: f
   res.json({ user, token });
 });
 
-module.exports = { router, authenticateToken }; 
+module.exports = { router, authenticateToken, requireNotBlocked }; 
