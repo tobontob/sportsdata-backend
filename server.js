@@ -85,7 +85,10 @@ app.use('/api/reports', reportsRouter);
 
 // 헬스 체크
 app.get('/api/health', (req, res) => {
-  res.status(200).send('OK');
+  res.json({
+    status: 'OK',
+    redis: redisManager.getStatus()
+  });
 });
 
 // Redis 상태 확인
