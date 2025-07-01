@@ -41,6 +41,24 @@ router.patch('/:id', authenticateToken, requireAdmin, async (req, res) => {
     return res.status(400).json({ error: '유효하지 않은 action' });
   }
   try {
+    // 신고 정보 조회
+    const reportRes = await db.query('SELECT * FROM reports WHERE id = $1', [id]);
+    if (reportRes.rows.length === 0) {
+      return res.status(404).json({ error: '신고 내역 없음' });
+    }
+    const report = reportRes.rows[0];
+    // 실제 삭제/숨김 처리 (예시)
+    if (action === 'deleted') {
+      if (report.target_type === 'post') {
+        await db.query('UPDATE posts SET deleted = TRUE WHERE id = $1', [report.target_id]);
+      } else if (report.target_type === 'comment') {
+        await db.query('UPDATE comments SET deleted = TRUE WHERE id = $1', [report.target_id]);
+      } else if (report.target_type === 'chat') {
+        await db.query('UPDATE chat_messages SET deleted = TRUE WHERE id = $1', [report.target_id]);
+      } else if (report.target_type === 'betting') {
+        // betting 항목은 별도 처리 필요(예: 신고만 기록)
+      }
+    }
     await db.query('UPDATE reports SET status = $1 WHERE id = $2', [action, id]);
     res.json({ success: true });
   } catch (err) {
@@ -50,7 +68,7 @@ router.patch('/:id', authenticateToken, requireAdmin, async (req, res) => {
 
 // POST /api/reports - 신고 등록 (중복 방지)
 router.post('/', authenticateToken, async (req, res) => {
-  const { target_type, target_id, reason } = req.body;
+  const { target_type, target_id, reason, message } = req.body;
   if (!target_type || !target_id || !reason) {
     return res.status(400).json({ error: '필수 항목 누락' });
   }
@@ -63,10 +81,17 @@ router.post('/', authenticateToken, async (req, res) => {
     if (dup.rows.length > 0) {
       return res.status(409).json({ error: '이미 신고하셨습니다.' });
     }
-    await db.query(
-      'INSERT INTO reports (target_type, target_id, reason, user_id) VALUES ($1, $2, $3, $4)',
-      [target_type, target_id, reason, req.user.userId]
-    );
+    if (target_type === 'chat') {
+      await db.query(
+        'INSERT INTO reports (target_type, target_id, reason, user_id, message) VALUES ($1, $2, $3, $4, $5)',
+        [target_type, target_id, reason, req.user.userId, message || '']
+      );
+    } else {
+      await db.query(
+        'INSERT INTO reports (target_type, target_id, reason, user_id) VALUES ($1, $2, $3, $4)',
+        [target_type, target_id, reason, req.user.userId]
+      );
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: '신고 등록 실패' });
