@@ -85,12 +85,7 @@ app.use('/api/reports', reportsRouter);
 
 // 헬스 체크
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    redis: redisManager.getStatus()
-  });
+  res.status(200).send('OK');
 });
 
 // Redis 상태 확인
@@ -320,6 +315,7 @@ const PORT = process.env.PORT || 5000;
 
 // Redis 초기화 후 서버 시작
 async function startServer() {
+  console.log('서버 시작!');
   console.log('현재 작업 디렉토리:', process.cwd());
   console.log('.env 파일 존재 여부:', fs.existsSync('.env'));
   if (fs.existsSync('.env')) {
