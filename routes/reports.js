@@ -48,4 +48,21 @@ router.patch('/:id', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/reports - 신고 등록
+router.post('/', authenticateToken, async (req, res) => {
+  const { target_type, target_id, reason } = req.body;
+  if (!target_type || !target_id || !reason) {
+    return res.status(400).json({ error: '필수 항목 누락' });
+  }
+  try {
+    await db.query(
+      'INSERT INTO reports (target_type, target_id, reason, user_id) VALUES ($1, $2, $3, $4)',
+      [target_type, target_id, reason, req.user.userId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: '신고 등록 실패' });
+  }
+});
+
 module.exports = router; 

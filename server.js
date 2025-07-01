@@ -81,6 +81,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/leagues', leaguesRouter);
 app.use('/api/teams', teamsRouter);
 app.use('/api/admin/reports', reportsRouter);
+app.use('/api/reports', reportsRouter);
 
 // 헬스 체크
 app.get('/api/health', (req, res) => {
