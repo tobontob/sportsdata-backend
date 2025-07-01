@@ -17,7 +17,8 @@ const app = express();
 // CORS 미들웨어를 가장 먼저 적용
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://web-production-190c.up.railway.app"
+  "https://web-production-190c.up.railway.app",
+  "https://sportsdata-frontend.vercel.app"
 ];
 const corsOptions = {
   origin: allowedOrigins,
