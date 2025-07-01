@@ -48,13 +48,21 @@ router.patch('/:id', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// POST /api/reports - 신고 등록
+// POST /api/reports - 신고 등록 (중복 방지)
 router.post('/', authenticateToken, async (req, res) => {
   const { target_type, target_id, reason } = req.body;
   if (!target_type || !target_id || !reason) {
     return res.status(400).json({ error: '필수 항목 누락' });
   }
   try {
+    // 중복 신고 체크
+    const dup = await db.query(
+      'SELECT id FROM reports WHERE target_type = $1 AND target_id = $2 AND user_id = $3',
+      [target_type, target_id, req.user.userId]
+    );
+    if (dup.rows.length > 0) {
+      return res.status(409).json({ error: '이미 신고하셨습니다.' });
+    }
     await db.query(
       'INSERT INTO reports (target_type, target_id, reason, user_id) VALUES ($1, $2, $3, $4)',
       [target_type, target_id, reason, req.user.userId]
