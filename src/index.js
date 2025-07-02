@@ -3,6 +3,7 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
 import { getLiveMatches, getScheduledMatches } from './services/footballApi.js'
+import db from '../config/database.js'
 
 const app = express()
 const server = createServer(app)
@@ -267,46 +268,73 @@ setInterval(async () => {
   }
 }, 60000) // 1분
 
-// --- 커뮤니티 게시판 API ---
+// --- 커뮤니티 게시판 API (DB 연동) ---
 
 // 커뮤니티 글 목록
 app.get('/api/community/:type', async (req, res) => {
   const { type } = req.params;
-  // 실제로는 DB에서 type별 게시글 목록을 조회해야 함
-  // 예시: SELECT * FROM community_posts WHERE type = $1 ORDER BY created_at DESC
-  res.json([
-    // 목업 데이터 예시
-    { id: 1, title: '커뮤니티 테스트 글', author: '익명', created_at: new Date(), comment_count: 0 }
-  ]);
+  try {
+    const result = await db.query(
+      'SELECT id, title, author, created_at, (SELECT COUNT(*) FROM community_comments WHERE post_id = p.id) AS comment_count FROM community_posts p WHERE type = $1 ORDER BY created_at DESC',
+      [type]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DB 조회 오류' });
+  }
 });
 
 // 커뮤니티 글 상세 + 댓글
 app.get('/api/community/:type/:postId', async (req, res) => {
   const { type, postId } = req.params;
-  // 실제로는 DB에서 게시글/댓글을 조회해야 함
-  // 예시: SELECT * FROM community_posts WHERE id = $1 AND type = $2
-  res.json({
-    post: { id: postId, title: '커뮤니티 테스트 글', content: '본문', author: '익명', created_at: new Date() },
-    comments: []
-  });
+  try {
+    const postResult = await db.query('SELECT * FROM community_posts WHERE id = $1 AND type = $2', [postId, type]);
+    const commentResult = await db.query('SELECT * FROM community_comments WHERE post_id = $1 ORDER BY created_at ASC', [postId]);
+    res.json({
+      post: postResult.rows[0] || null,
+      comments: commentResult.rows
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DB 조회 오류' });
+  }
 });
 
 // 커뮤니티 글 작성
 app.post('/api/community/:type', async (req, res) => {
   const { type } = req.params;
   const { title, content } = req.body;
-  // 실제로는 DB에 저장해야 함
-  // 예시: INSERT INTO community_posts (type, title, content, author, created_at) VALUES ...
-  res.json({ success: true, id: Math.floor(Math.random() * 10000) });
+  // 실제로는 로그인 사용자 정보에서 author를 받아야 함
+  const author = '익명';
+  try {
+    const result = await db.query(
+      'INSERT INTO community_posts (type, title, content, author, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
+      [type, title, content, author]
+    );
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DB 저장 오류' });
+  }
 });
 
 // 커뮤니티 댓글 작성
 app.post('/api/community/:type/:postId/comments', async (req, res) => {
   const { type, postId } = req.params;
   const { content } = req.body;
-  // 실제로는 DB에 저장해야 함
-  // 예시: INSERT INTO community_comments (post_id, content, user, created_at) VALUES ...
-  res.json({ success: true, id: Math.floor(Math.random() * 10000) });
+  // 실제로는 로그인 사용자 정보에서 user를 받아야 함
+  const user = '익명';
+  try {
+    const result = await db.query(
+      'INSERT INTO community_comments (post_id, user, content, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
+      [postId, user, content]
+    );
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DB 저장 오류' });
+  }
 });
 
 const PORT = process.env.PORT || 3001
