@@ -75,6 +75,7 @@ const leaguesRouter = require('./routes/leagues');
 const teamsRouter = require('./routes/teams');
 const reportsRouter = require('./routes/reports');
 const boardRouter = require('./routes/board');
+const communityRouter = require('./routes/community');
 
 app.use('/api/matches', matchesRouter);
 app.use('/api/chat', chatRouter);
@@ -84,6 +85,7 @@ app.use('/api/teams', teamsRouter);
 app.use('/api/admin/reports', reportsRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/board', boardRouter);
+app.use('/api/community', communityRouter);
 
 // 헬스 체크
 app.get('/api/health', (req, res) => {

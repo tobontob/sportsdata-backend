@@ -21,6 +21,73 @@ app.use(express.json())
 // 정적 파일 제공
 app.use(express.static('public'))
 
+// --- 커뮤니티 게시판 API (DB 연동) ---
+
+// 커뮤니티 글 목록
+app.get('/api/community/:type', async (req, res) => {
+  const { type } = req.params;
+  try {
+    const result = await db.query(
+      'SELECT id, title, author, created_at, (SELECT COUNT(*) FROM community_comments WHERE post_id = p.id) AS comment_count FROM community_posts p WHERE type = $1 ORDER BY created_at DESC',
+      [type]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DB 조회 오류' });
+  }
+});
+
+// 커뮤니티 글 상세 + 댓글
+app.get('/api/community/:type/:postId', async (req, res) => {
+  const { type, postId } = req.params;
+  try {
+    const postResult = await db.query('SELECT * FROM community_posts WHERE id = $1 AND type = $2', [postId, type]);
+    const commentResult = await db.query('SELECT * FROM community_comments WHERE post_id = $1 ORDER BY created_at ASC', [postId]);
+    res.json({
+      post: postResult.rows[0] || null,
+      comments: commentResult.rows
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DB 조회 오류' });
+  }
+});
+
+// 커뮤니티 글 작성
+app.post('/api/community/:type', async (req, res) => {
+  const { type } = req.params;
+  const { title, content } = req.body;
+  const author = '익명';
+  try {
+    const result = await db.query(
+      'INSERT INTO community_posts (type, title, content, author, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
+      [type, title, content, author]
+    );
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DB 저장 오류' });
+  }
+});
+
+// 커뮤니티 댓글 작성
+app.post('/api/community/:type/:postId/comments', async (req, res) => {
+  const { type, postId } = req.params;
+  const { content } = req.body;
+  const username = '익명';
+  try {
+    const result = await db.query(
+      'INSERT INTO community_comments (post_id, username, content, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
+      [postId, username, content]
+    );
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DB 저장 오류' });
+  }
+});
+
 // 기본 라우트
 app.get('/', (req, res) => {
   res.json({ 
@@ -268,72 +335,7 @@ setInterval(async () => {
   }
 }, 60000) // 1분
 
-// --- 커뮤니티 게시판 API (DB 연동) ---
 
-// 커뮤니티 글 목록
-app.get('/api/community/:type', async (req, res) => {
-  const { type } = req.params;
-  try {
-    const result = await db.query(
-      'SELECT id, title, author, created_at, (SELECT COUNT(*) FROM community_comments WHERE post_id = p.id) AS comment_count FROM community_posts p WHERE type = $1 ORDER BY created_at DESC',
-      [type]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'DB 조회 오류' });
-  }
-});
-
-// 커뮤니티 글 상세 + 댓글
-app.get('/api/community/:type/:postId', async (req, res) => {
-  const { type, postId } = req.params;
-  try {
-    const postResult = await db.query('SELECT * FROM community_posts WHERE id = $1 AND type = $2', [postId, type]);
-    const commentResult = await db.query('SELECT * FROM community_comments WHERE post_id = $1 ORDER BY created_at ASC', [postId]);
-    res.json({
-      post: postResult.rows[0] || null,
-      comments: commentResult.rows
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'DB 조회 오류' });
-  }
-});
-
-// 커뮤니티 글 작성
-app.post('/api/community/:type', async (req, res) => {
-  const { type } = req.params;
-  const { title, content } = req.body;
-  const author = '익명'; // 실제로는 로그인 사용자 정보 사용
-  try {
-    const result = await db.query(
-      'INSERT INTO community_posts (type, title, content, author, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
-      [type, title, content, author]
-    );
-    res.json({ success: true, id: result.rows[0].id });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'DB 저장 오류' });
-  }
-});
-
-// 커뮤니티 댓글 작성
-app.post('/api/community/:type/:postId/comments', async (req, res) => {
-  const { type, postId } = req.params;
-  const { content } = req.body;
-  const username = '익명'; // user → username
-  try {
-    const result = await db.query(
-      'INSERT INTO community_comments (post_id, username, content, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
-      [postId, username, content]
-    );
-    res.json({ success: true, id: result.rows[0].id });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'DB 저장 오류' });
-  }
-});
 
 const PORT = process.env.PORT || 3001
 
