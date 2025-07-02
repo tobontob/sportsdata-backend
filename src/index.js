@@ -3,7 +3,7 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
 import { getLiveMatches, getScheduledMatches } from './services/footballApi.js'
-import db from '../config/database.js'
+const db = require('../config/database.js')
 
 const app = express()
 const server = createServer(app)
@@ -305,8 +305,7 @@ app.get('/api/community/:type/:postId', async (req, res) => {
 app.post('/api/community/:type', async (req, res) => {
   const { type } = req.params;
   const { title, content } = req.body;
-  // 실제로는 로그인 사용자 정보에서 author를 받아야 함
-  const author = '익명';
+  const author = '익명'; // 실제로는 로그인 사용자 정보 사용
   try {
     const result = await db.query(
       'INSERT INTO community_posts (type, title, content, author, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
@@ -323,8 +322,7 @@ app.post('/api/community/:type', async (req, res) => {
 app.post('/api/community/:type/:postId/comments', async (req, res) => {
   const { type, postId } = req.params;
   const { content } = req.body;
-  // 실제로는 로그인 사용자 정보에서 user를 받아야 함
-  const user = '익명';
+  const user = '익명'; // 실제로는 로그인 사용자 정보 사용
   try {
     const result = await db.query(
       'INSERT INTO community_comments (post_id, user, content, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
