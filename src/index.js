@@ -322,11 +322,11 @@ app.post('/api/community/:type', async (req, res) => {
 app.post('/api/community/:type/:postId/comments', async (req, res) => {
   const { type, postId } = req.params;
   const { content } = req.body;
-  const user = '익명'; // 실제로는 로그인 사용자 정보 사용
+  const username = '익명'; // user → username
   try {
     const result = await db.query(
-      'INSERT INTO community_comments (post_id, user, content, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
-      [postId, user, content]
+      'INSERT INTO community_comments (post_id, username, content, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
+      [postId, username, content]
     );
     res.json({ success: true, id: result.rows[0].id });
   } catch (err) {
