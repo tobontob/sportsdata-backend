@@ -143,10 +143,19 @@ router.get('/:id', async (req, res) => {
     `;
     const oddsResult = await db.query(oddsQuery, [id]);
 
+    // 경기 통계(match_stats) 조회
+    const statsQuery = `
+      SELECT stat_type, home_value, away_value
+      FROM match_stats
+      WHERE match_id = $1
+    `;
+    const statsResult = await db.query(statsQuery, [id]);
+
     res.json({
       ...match,
       events: eventsResult.rows,
-      odds: oddsResult.rows
+      odds: oddsResult.rows,
+      stats: statsResult.rows
     });
   } catch (error) {
     console.error('경기 상세 조회 오류:', error);
