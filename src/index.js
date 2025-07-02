@@ -267,6 +267,48 @@ setInterval(async () => {
   }
 }, 60000) // 1분
 
+// --- 커뮤니티 게시판 API ---
+
+// 커뮤니티 글 목록
+app.get('/api/community/:type', async (req, res) => {
+  const { type } = req.params;
+  // 실제로는 DB에서 type별 게시글 목록을 조회해야 함
+  // 예시: SELECT * FROM community_posts WHERE type = $1 ORDER BY created_at DESC
+  res.json([
+    // 목업 데이터 예시
+    { id: 1, title: '커뮤니티 테스트 글', author: '익명', created_at: new Date(), comment_count: 0 }
+  ]);
+});
+
+// 커뮤니티 글 상세 + 댓글
+app.get('/api/community/:type/:postId', async (req, res) => {
+  const { type, postId } = req.params;
+  // 실제로는 DB에서 게시글/댓글을 조회해야 함
+  // 예시: SELECT * FROM community_posts WHERE id = $1 AND type = $2
+  res.json({
+    post: { id: postId, title: '커뮤니티 테스트 글', content: '본문', author: '익명', created_at: new Date() },
+    comments: []
+  });
+});
+
+// 커뮤니티 글 작성
+app.post('/api/community/:type', async (req, res) => {
+  const { type } = req.params;
+  const { title, content } = req.body;
+  // 실제로는 DB에 저장해야 함
+  // 예시: INSERT INTO community_posts (type, title, content, author, created_at) VALUES ...
+  res.json({ success: true, id: Math.floor(Math.random() * 10000) });
+});
+
+// 커뮤니티 댓글 작성
+app.post('/api/community/:type/:postId/comments', async (req, res) => {
+  const { type, postId } = req.params;
+  const { content } = req.body;
+  // 실제로는 DB에 저장해야 함
+  // 예시: INSERT INTO community_comments (post_id, content, user, created_at) VALUES ...
+  res.json({ success: true, id: Math.floor(Math.random() * 10000) });
+});
+
 const PORT = process.env.PORT || 3001
 
 server.listen(PORT, () => {
