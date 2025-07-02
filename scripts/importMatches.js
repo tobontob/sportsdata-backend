@@ -71,6 +71,45 @@ async function importMatches() {
                updated_at = NOW()`,
             [id, match_date, status, home_score, away_score, minute, venue, home_team_id, away_team_id, league_id]
           );
+
+          // --- 배당률(odds) 동기화 ---
+          try {
+            const oddsRes = await axios.get(`https://v3.football.api-sports.io/odds`, {
+              headers: { 'x-apisports-key': API_KEY },
+              params: { fixture: id }
+            });
+            const oddsData = oddsRes.data.response;
+            for (const oddsObj of oddsData) {
+              const bookmakers = oddsObj.bookmakers || [];
+              for (const bookmaker of bookmakers) {
+                const bookmakerName = bookmaker.name;
+                for (const bet of bookmaker.bets) {
+                  const market = bet.name;
+                  // 승무패(Match Winner) 마켓만 예시로 저장
+                  if (market === 'Match Winner') {
+                    let home_odds = null, draw_odds = null, away_odds = null;
+                    for (const value of bet.values) {
+                      if (value.value === 'Home') home_odds = parseFloat(value.odd);
+                      if (value.value === 'Draw') draw_odds = parseFloat(value.odd);
+                      if (value.value === 'Away') away_odds = parseFloat(value.odd);
+                    }
+                    await pool.query(
+                      `INSERT INTO betting_odds (match_id, bookmaker, market, home_odds, draw_odds, away_odds, last_update)
+                       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                       ON CONFLICT (match_id, bookmaker, market) DO UPDATE SET
+                         home_odds = EXCLUDED.home_odds,
+                         draw_odds = EXCLUDED.draw_odds,
+                         away_odds = EXCLUDED.away_odds,
+                         last_update = NOW()`,
+                      [id, bookmakerName, market, home_odds, draw_odds, away_odds]
+                    );
+                  }
+                }
+              }
+            }
+          } catch (oddsErr) {
+            console.error(`경기 ${id} 배당률 동기화 오류:`, oddsErr.response?.data || oddsErr.message);
+          }
         }
       } catch (err) {
         console.error(`리그 ${leagueId} 경기 데이터 적재 오류:`, err.response?.data || err.message);
