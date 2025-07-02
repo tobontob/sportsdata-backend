@@ -110,6 +110,65 @@ async function importMatches() {
           } catch (oddsErr) {
             console.error(`경기 ${id} 배당률 동기화 오류:`, oddsErr.response?.data || oddsErr.message);
           }
+
+          // --- 경기 통계(match_stats) 동기화 ---
+          try {
+            const statsRes = await axios.get(`https://v3.football.api-sports.io/fixtures/statistics`, {
+              headers: { 'x-apisports-key': API_KEY },
+              params: { fixture: id }
+            });
+            const statsData = statsRes.data.response;
+            for (const teamStats of statsData) {
+              const isHome = teamStats.team.id === home_team_id;
+              for (const stat of teamStats.statistics) {
+                const statType = stat.type;
+                const value = parseFloat(stat.value) || 0;
+                if (isHome) {
+                  // 홈팀 값만 먼저 upsert, 어웨이 값은 나중에 업데이트
+                  await pool.query(
+                    `INSERT INTO match_stats (match_id, stat_type, home_value)
+                     VALUES ($1, $2, $3)
+                     ON CONFLICT (match_id, stat_type) DO UPDATE SET home_value = $3`,
+                    [id, statType, value]
+                  );
+                } else {
+                  // 어웨이 값만 업데이트
+                  await pool.query(
+                    `UPDATE match_stats SET away_value = $1 WHERE match_id = $2 AND stat_type = $3`,
+                    [value, id, statType]
+                  );
+                }
+              }
+            }
+          } catch (statsErr) {
+            console.error(`경기 ${id} 통계 동기화 오류:`, statsErr.response?.data || statsErr.message);
+          }
+
+          // --- 경기 이벤트(match_events) 동기화 ---
+          try {
+            const eventsRes = await axios.get(`https://v3.football.api-sports.io/fixtures/events`, {
+              headers: { 'x-apisports-key': API_KEY },
+              params: { fixture: id }
+            });
+            const eventsData = eventsRes.data.response;
+            for (const event of eventsData) {
+              await pool.query(
+                `INSERT INTO match_events (match_id, event_type, minute, player_name, team_id, description)
+                 VALUES ($1, $2, $3, $4, $5, $6)
+                 ON CONFLICT DO NOTHING`,
+                [
+                  id,
+                  event.type,
+                  event.time.elapsed,
+                  event.player.name,
+                  event.team.id,
+                  event.detail
+                ]
+              );
+            }
+          } catch (eventsErr) {
+            console.error(`경기 ${id} 이벤트 동기화 오류:`, eventsErr.response?.data || eventsErr.message);
+          }
         }
       } catch (err) {
         console.error(`리그 ${leagueId} 경기 데이터 적재 오류:`, err.response?.data || err.message);
