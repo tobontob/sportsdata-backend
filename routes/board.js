@@ -48,7 +48,7 @@ router.get('/:sport/:postId', async (req, res) => {
       return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' });
     }
     const commentsResult = await db.query(
-      'SELECT id, user AS "user", content, created_at FROM board_comments WHERE post_id = $1 ORDER BY created_at ASC',
+      'SELECT id, username, content, created_at FROM board_comments WHERE post_id = $1 ORDER BY created_at ASC',
       [postId]
     );
     res.json({ post: postResult.rows[0], comments: commentsResult.rows });
@@ -61,15 +61,15 @@ router.get('/:sport/:postId', async (req, res) => {
 router.post('/:sport/:postId/comments', async (req, res) => {
   const { postId } = req.params;
   const { content } = req.body;
-  // 실제로는 req.user에서 user를 가져와야 함
-  const user = '익명';
+  // 실제로는 req.user에서 username을 가져와야 함
+  const username = '익명';
   if (!content) {
     return res.status(400).json({ error: '댓글 내용을 입력하세요.' });
   }
   try {
     await db.query(
-      'INSERT INTO board_comments (post_id, user, content, created_at) VALUES ($1, $2, $3, NOW())',
-      [postId, user, content]
+      'INSERT INTO board_comments (post_id, username, content, created_at) VALUES ($1, $2, $3, NOW())',
+      [postId, username, content]
     );
     res.status(201).json({ message: '댓글 작성 완료' });
   } catch (err) {
