@@ -336,4 +336,8 @@ async function startServer() {
   server.listen(PORT, () => {
     console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다.`);
     console.log(`📊 환경: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`
+    console.log('🚀 서버가 정상적으로 실행 중입니다.');
+  });
+}
+
+startServer();

@@ -1,0 +1,18 @@
+-- 종목별 게시판 게시글 테이블
+CREATE TABLE IF NOT EXISTS board_posts (
+  id SERIAL PRIMARY KEY,
+  sport VARCHAR(30) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  content TEXT NOT NULL,
+  author VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 종목별 게시판 댓글 테이블
+CREATE TABLE IF NOT EXISTS board_comments (
+  id SERIAL PRIMARY KEY,
+  post_id INTEGER REFERENCES board_posts(id) ON DELETE CASCADE,
+  user VARCHAR(50) NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+); 
