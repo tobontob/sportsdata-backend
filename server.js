@@ -74,6 +74,7 @@ const { router: authRouter } = require('./routes/auth');
 const leaguesRouter = require('./routes/leagues');
 const teamsRouter = require('./routes/teams');
 const reportsRouter = require('./routes/reports');
+const boardRouter = require('./routes/board');
 
 app.use('/api/matches', matchesRouter);
 app.use('/api/chat', chatRouter);
@@ -82,6 +83,7 @@ app.use('/api/leagues', leaguesRouter);
 app.use('/api/teams', teamsRouter);
 app.use('/api/admin/reports', reportsRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/board', boardRouter);
 
 // 헬스 체크
 app.get('/api/health', (req, res) => {
@@ -334,28 +336,4 @@ async function startServer() {
   server.listen(PORT, () => {
     console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다.`);
     console.log(`📊 환경: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🌐 CORS Origin: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-    console.log(`🔴 Redis 연결: ${redisConnected ? '활성화' : '비활성화'}`);
-  });
-}
-
-startServer();
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('🛑 SIGTERM 신호를 받았습니다. 서버를 종료합니다...');
-  server.close(async () => {
-    console.log('✅ 서버가 정상적으로 종료되었습니다.');
-    await redisManager.disconnect();
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', async () => {
-  console.log('🛑 SIGINT 신호를 받았습니다. 서버를 종료합니다...');
-  server.close(async () => {
-    console.log('✅ 서버가 정상적으로 종료되었습니다.');
-    await redisManager.disconnect();
-    process.exit(0);
-  });
-}); 
+    console.log(`
